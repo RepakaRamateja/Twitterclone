@@ -1,0 +1,133 @@
+<html ng-app="mittens">
+<head>
+<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<script type="text/javascript" src="angular.min.js"></script>
+<script type="text/javascript" src="angular-route.js"></script>
+<script type="text/javascript" src="angular-cookies.js"></script>
+<script type="text/javascript">
+    var app= angular.module('mittens',['ngRoute','ngCookies']);
+
+    
+    app.config(function($routeProvider,$locationProvider) {
+  $routeProvider
+         .when('/',{
+            
+             templateUrl: 'home.html',
+             controller:   'HomeController',
+         })
+         .when('/signup',{
+           
+             templateUrl: 'signup.html',
+             controller:   'SignupController',
+              
+         });
+
+   });
+
+      
+      app.run(function($rootScope,$cookies)
+       {
+        
+              if( $cookies.get('token') && $cookies.get('currentuser'))
+              {
+                     $rootScope.token=$cookies.get('token');
+                     $rootScope.currentuser=$cookies.get('currentuser');
+              }    
+       });
+
+
+
+     app.controller('HomeController', function($rootScope,$scope,$http,$cookies)
+     {
+
+      $scope.submitnewmeow= function(){
+         $http.post('/meows',
+          {newMeow:$scope.newmeow},
+          {headers:{
+             'authorization' : $rootScope.token
+          }}).then(function(){
+            getmeows();
+            $scope.newmeow='';
+         });
+      }; 
+
+      
+     $scope.removemeow=function(meow) {
+   $http.put('/meows/remove',
+  {meow: meow},
+  {headers:{
+             'authorization' : $rootScope.token
+          }}).then(function(){
+            getmeows();
+            
+         });
+
+     };  
+
+
+$scope.signin=function(){
+
+$http.put('/users/signin',{username: $scope.user,password: $scope.pass}).then(function(res){
+             console.log(res.data.token); 
+             $cookies.put('token',res.data.token);
+             $cookies.put('currentuser',$scope.user);
+             $rootScope.token=res.data.token;
+             $rootScope.currentuser=$scope.user;
+             getmeows();
+            
+         },function(err)
+         {
+           alert('bad login credentials');
+         });
+}
+
+
+$scope.logout=function()
+{
+   $cookies.remove('token');
+   $cookies.remove('currentuser');
+   $rootScope.token=null;
+   $rootScope.currentuser=null;
+
+}
+
+     function getmeows()
+     {
+      $http.get('/meows',
+        {headers:{
+             'authorization' : $rootScope.token
+          }}).then(function(response)
+      {
+          $scope.meows=response.data;
+      }); 
+
+     }
+
+   // getmeows();
+});
+
+app.controller('SignupController', function($scope,$http)
+{     
+     $scope.submitsignup= function() {
+      
+      var newuser = {
+           username : $scope.username,
+           password : $scope.password
+      };
+
+      $http.post('/users', newuser).then(function()
+      {
+            alert('sucess');
+      });
+
+     }
+});
+
+</script>
+</head>
+<body>
+    <h1 class="page-title"><a href="/">clone</a></h1>
+    <div ng-view></div>
+</body>
+</html>
